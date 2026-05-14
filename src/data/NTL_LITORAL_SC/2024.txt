@@ -1,0 +1,38 @@
+Ano de exportação:
+2024
+Total de imagens VIIRS no ano:
+346
+Bandas disponíveis:
+List (7 elements)
+0: DNB_BRDF_Corrected_NTL
+1: DNB_Lunar_Irradiance
+2: Gap_Filled_DNB_BRDF_Corrected_NTL
+3: Latest_High_Quality_Retrieval
+4: Mandatory_Quality_Flag
+5: QF_Cloud_Mask
+6: Snow_Flag
+Imagens no mês 1/2024:
+31
+Imagens no mês 2/2024:
+29
+Imagens no mês 3/2024:
+31
+Imagens no mês 4/2024:
+30
+Imagens no mês 5/2024:
+29
+Imagens no mês 6/2024:
+27
+Imagens no mês 7/2024:
+21
+Imagens no mês 8/2024:
+31
+Imagens no mês 9/2024:
+28
+Imagens no mês 10/2024:
+31
+Imagens no mês 11/2024:
+27
+Imagens no mês 12/2024:
+31
+Exportações criadas para o ano 2024. Verifique o painel Tasks.

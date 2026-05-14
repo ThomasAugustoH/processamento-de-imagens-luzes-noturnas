@@ -1,0 +1,38 @@
+Use print(...) to write to this console.
+Ano de exportação:
+2019
+Total de imagens VIIRS no ano:
+365
+Bandas disponíveis:
+List (7 elements)
+0: DNB_BRDF_Corrected_NTL
+1: DNB_Lunar_Irradiance
+2: Gap_Filled_DNB_BRDF_Corrected_NTL
+3: Latest_High_Quality_Retrieval
+4: Mandatory_Quality_Flag
+5: QF_Cloud_Mask
+6: Snow_Flag
+Imagens no mês 1/2019:
+31
+Imagens no mês 2/2019:
+28
+Imagens no mês 3/2019:
+31
+Imagens no mês 4/2019:
+30
+Imagens no mês 5/2019:
+31
+Imagens no mês 6/2019:
+30
+Imagens no mês 7/2019:
+31
+Imagens no mês 8/2019:
+31
+Imagens no mês 9/2019:
+30
+Imagens no mês 10/2019:
+31
+Imagens no mês 11/2019:
+30
+Imagens no mês 12/2019:
+31

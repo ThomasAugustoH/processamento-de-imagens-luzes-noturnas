@@ -1,0 +1,31 @@
+Ano de exportação:
+2017
+Total de imagens VIIRS no ano:
+365
+Bandas disponíveis:
+List (7 elements)
+Imagens no mês 1/2017:
+31
+Imagens no mês 2/2017:
+28
+Imagens no mês 3/2017:
+31
+Imagens no mês 4/2017:
+30
+Imagens no mês 5/2017:
+31
+Imagens no mês 6/2017:
+30
+Imagens no mês 7/2017:
+31
+Imagens no mês 8/2017:
+31
+Imagens no mês 9/2017:
+30
+Imagens no mês 10/2017:
+31
+Imagens no mês 11/2017:
+30
+Imagens no mês 12/2017:
+31
+Exportações criadas para o ano 2017. Verifique o painel Tasks.

@@ -1,0 +1,32 @@
+Use print(...) to write to this console.
+Ano de exportação:
+2022
+Total de imagens VIIRS no ano:
+350
+Bandas disponíveis:
+List (7 elements)
+Imagens no mês 1/2022:
+31
+Imagens no mês 2/2022:
+28
+Imagens no mês 3/2022:
+31
+Imagens no mês 4/2022:
+30
+Imagens no mês 5/2022:
+31
+Imagens no mês 6/2022:
+30
+Imagens no mês 7/2022:
+26
+Imagens no mês 8/2022:
+21
+Imagens no mês 9/2022:
+30
+Imagens no mês 10/2022:
+31
+Imagens no mês 11/2022:
+30
+Imagens no mês 12/2022:
+31
+Exportações criadas para o ano 2022. Verifique o painel Tasks.

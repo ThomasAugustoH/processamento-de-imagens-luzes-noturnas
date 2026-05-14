@@ -1,0 +1,12 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>NTL</Description>
+    <Metadata>
+      <MDI key="STATISTICS_MINIMUM">0.21726126968861</MDI>
+      <MDI key="STATISTICS_MAXIMUM">430.68936157227</MDI>
+      <MDI key="STATISTICS_MEAN">4.1938714302854</MDI>
+      <MDI key="STATISTICS_STDDEV">10.523481867003</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">40.16</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>
