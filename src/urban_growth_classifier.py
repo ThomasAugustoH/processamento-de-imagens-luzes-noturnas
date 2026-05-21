@@ -5,17 +5,13 @@ from sklearn.ensemble import RandomForestClassifier
 from preprocess_normalize import preprocess_image
 
 def load_image(filepath):
-    # Carregar imagem (aceita TIF e mantém suporte ao formato Float32 original do VIIRS)
     img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
     if img is None:
         raise FileNotFoundError(f"Erro ao carregar a imagem: {filepath}")
-    
-    # Caso a imagem possua valores Not-a-Number (NaN) que correspondem a NoData, substitui por 0
     img = np.nan_to_num(img, nan=0.0)
     return img
 
 def main():
-    # Caminhos baseados na estrutura do seu workspace (Ex: Blumenau janeiro de 2015 e 2025)
     base_path = os.path.dirname(os.path.abspath(__file__))
     
     img_2015_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", "NTL_2015", "VIIRS_NTL_MedianaMensal_Blumenau_2015_01_reprojetada.tif")
@@ -44,8 +40,8 @@ def main():
     X = []
     y = []
 
-    patch_size = 16  # Tamanho do bloco para extração de características
-    threshold = 10.0  # Como a base agora é PB (0 e 255), um limiar de 10 na média significa que vários pixels "acenderam"
+    patch_size = 16
+    threshold = 10.0  #a base agora é PB (0 e 255), um limiar de 10 na média 
 
     print(f"Extraindo características em blocos de {patch_size}x{patch_size} pixels...")
 
@@ -80,13 +76,11 @@ def main():
 
     print(f"Total de amostras extraídas: {len(X)}")
     
-    # Modelo Random Forest
     print("Treinando classificador Random Forest...")
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X, y)
     print("Modelo treinado com sucesso!")
     
-    # Criar uma imagem para visualizar o mapa de crescimento classificado
     print("Gerando mapa visual de crescimento...")
     crescimento_mapa = np.zeros(img_2015.shape, dtype=np.uint8)
     
@@ -97,16 +91,13 @@ def main():
             if p1.shape != (patch_size, patch_size):
                 continue
             
-            # Predição do modelo treinado
             label_pred = model.predict([X[idx]])[0]
             
             if label_pred == 1:
-                # Marcar crescimento com branco (255) no mapa visual
                 crescimento_mapa[i:i+patch_size, j:j+patch_size] = 255
             
             idx += 1
-
-    # Salva o mapa de resultado como PNG
+            
     output_path = os.path.join(base_path, "mapa_crescimento_blumenau.png")
     cv2.imwrite(output_path, crescimento_mapa)
     print(f"Mapa visual salvo em: {output_path}")
