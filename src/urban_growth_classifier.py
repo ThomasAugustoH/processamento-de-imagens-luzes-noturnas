@@ -18,97 +18,151 @@ def main():
     # Caminhos baseados na estrutura do seu workspace (Ex: Blumenau janeiro de 2015 e 2025)
     base_path = os.path.dirname(os.path.abspath(__file__))
     
-    img_2015_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", "NTL_2015", "VIIRS_NTL_MedianaMensal_Blumenau_2015_01_reprojetada.tif")
-    img_2025_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", "NTL_2025", "VIIRS_NTL_MedianaMensal_Blumenau_2025_01_reprojetada.tif")
-    
     print("Pré-processando e carregando imagens...")
+    available_images = {}
+    for year in range(2015, 2026):
+        img_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", f"NTL_{year}", f"VIIRS_NTL_MedianaMensal_Blumenau_{year}_01_reprojetada.tif")
+        if os.path.exists(img_path):
+            try:
+                print(f"Processando imagem do ano {year}...")
+                img, _ = preprocess_image(img_path, f"blumenau_{year}.png", threshold_value=15)
+                available_images[year] = img
+            except Exception as e:
+                print(f"Erro ao carregar o ano {year}: {e}")
+                
+    if len(available_images) < 2:
+        print("Erro: É necessário ter pelo menos dois anos de imagens para treinar o modelo.")
+        return
+
+    # Caminho para o modelo digital de elevação (DEM). Ex: Arquivo SRTM ou NASADEM 
+    dem_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "DEM_Blumenau_reprojetada.tif")
+    
     try:
-        # Integrando com o módulo de pré-processamento.
-        # Estamos pegando a imagem binarizada (apenas os focos reais de luz = 255 e fundo = 0)
-        img_2015, _ = preprocess_image(img_2015_path, "blumenau_2015.png", threshold_value=15)
-        img_2025, _ = preprocess_image(img_2025_path, "blumenau_2025.png", threshold_value=15)
+        # Carrega o DEM (sem binarizar para manter a altitude). Usa zeros se o arquivo ainda não existir (Mock).
+        if os.path.exists(dem_path):
+            img_dem = load_image(dem_path)
+        else:
+            print("Aviso: DEM não encontrado. Usando altitude zero (mock) para permitir a execução.")
+            img_dem = np.zeros_like(list(available_images.values())[0])
     except Exception as e:
-        print(f"Erro: {e}")
+        print(f"Erro ao carregar DEM: {e}")
         return
         
-    print(f"Dimensões da Imagem 2015: {img_2015.shape}")
-    print(f"Dimensões da Imagem 2025: {img_2025.shape}")
+    years_list = sorted(available_images.keys())
+    print(f"Anos carregados com sucesso: {years_list}")
 
-    # Verificar se as imagens possuem dimensões compatíveis
-    if img_2015.shape != img_2025.shape:
-        print("Atenção: as imagens possuem tamanhos diferentes. Ajustando para o menor tamanho...")
-        min_shape = (min(img_2015.shape[0], img_2025.shape[0]), min(img_2015.shape[1], img_2025.shape[1]))
-        img_2015 = img_2015[:min_shape[0], :min_shape[1]]
-        img_2025 = img_2025[:min_shape[0], :min_shape[1]]
+    # Verificar se as imagens possuem dimensões compatíveis e ajustar
+    shapes = [img.shape for img in available_images.values()] + [img_dem.shape]
+    min_shape = (min(s[0] for s in shapes), min(s[1] for s in shapes))
+    print(f"Ajustando imagens para o tamanho comum: {min_shape}")
+    
+    for year in available_images:
+        available_images[year] = available_images[year][:min_shape[0], :min_shape[1]]
+    img_dem = img_dem[:min_shape[0], :min_shape[1]]
 
-    X = []
-    y = []
+    X_train = []
+    y_train = []
 
-    patch_size = 16  # Tamanho do bloco para extração de características
-    threshold = 10.0  # Como a base agora é PB (0 e 255), um limiar de 10 na média significa que vários pixels "acenderam"
+    patch_size = 8  # Alterado para 8 para aumentar a resolução
+    threshold_base = 10.0  # Limiar base de crescimento considerando um gap de 10 anos
 
-    print(f"Extraindo características em blocos de {patch_size}x{patch_size} pixels...")
+    print(f"Extraindo características ao longo do tempo em blocos de {patch_size}x{patch_size} pixels...")
 
-    # Percorrer a imagem em blocos
-    for i in range(0, img_2015.shape[0], patch_size):
-        for j in range(0, img_2015.shape[1], patch_size):
-            p1 = img_2015[i:i+patch_size, j:j+patch_size]
-            p2 = img_2025[i:i+patch_size, j:j+patch_size]
+    # Percorrer os anos disponíveis aos pares (ex: 2015->2016, 2016->2019)
+    for idx_year in range(len(years_list) - 1):
+        y1 = years_list[idx_year]
+        y2 = years_list[idx_year + 1]
+        delta_years = y2 - y1
+        
+        img1 = available_images[y1]
+        img2 = available_images[y2]
+        
+        # Ajusta o limiar de crescimento esperado proporcionalmente ao tempo decorrido
+        threshold = (threshold_base / 10.0) * delta_years
 
-            # Ignorar amostras cortadas nas bordas
-            if p1.shape != (patch_size, patch_size):
-                continue
+        for i in range(0, img1.shape[0], patch_size):
+            for j in range(0, img1.shape[1], patch_size):
+                p1 = img1[i:i+patch_size, j:j+patch_size]
+                p2 = img2[i:i+patch_size, j:j+patch_size]
+                p_dem = img_dem[i:i+patch_size, j:j+patch_size]
 
-            mean1 = np.mean(p1)
-            mean2 = np.mean(p2)
+                # Ignorar amostras cortadas nas bordas
+                if p1.shape != (patch_size, patch_size):
+                    continue
 
-            diff = mean2 - mean1
+                mean1 = np.mean(p1)
+                mean2 = np.mean(p2)
+                mean_dem = np.mean(p_dem)
+                var_dem = np.var(p_dem)
 
-            features = [
-                mean1,
-                mean2,
-                diff,
-                np.var(p1),
-                np.var(p2)
-            ]
+                diff = mean2 - mean1
 
-            # Rótulo = 1 (crescimento urbano) se a diferença superar o limiar, senão 0
-            label = 1 if diff > threshold else 0
+                # Features de TREINAMENTO: Luz inicial + Topografia + Tempo
+                features_train = [
+                    mean1,
+                    np.var(p1),
+                    mean_dem,
+                    var_dem,
+                    delta_years  # Nova feature: informa ao modelo quanto tempo passou
+                ]
+                
+                label = 1 if diff > threshold else 0
 
-            X.append(features)
-            y.append(label)
+                X_train.append(features_train)
+                y_train.append(label)
 
-    print(f"Total de amostras extraídas: {len(X)}")
+    print(f"Total de amostras de treino extraídas: {len(X_train)}")
     
     # Modelo Random Forest
     print("Treinando classificador Random Forest...")
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X, y)
+    model.fit(X_train, y_train)
     print("Modelo treinado com sucesso!")
     
-    # Criar uma imagem para visualizar o mapa de crescimento classificado
-    print("Gerando mapa visual de crescimento...")
-    crescimento_mapa = np.zeros(img_2015.shape, dtype=np.uint8)
+    print("Gerando mapa de previsão de crescimento FUTURO...")
+    last_year = years_list[-1]
+    img_last = available_images[last_year]
+    crescimento_mapa = np.zeros(img_last.shape, dtype=np.uint8)
     
-    idx = 0
-    for i in range(0, img_2015.shape[0], patch_size):
-        for j in range(0, img_2015.shape[1], patch_size):
-            p1 = img_2015[i:i+patch_size, j:j+patch_size]
-            if p1.shape != (patch_size, patch_size):
+    future_delta_years = 10  # Prever os próximos 10 anos
+    
+    for i in range(0, img_last.shape[0], patch_size):
+        for j in range(0, img_last.shape[1], patch_size):
+            p_last = img_last[i:i+patch_size, j:j+patch_size]
+            p_dem = img_dem[i:i+patch_size, j:j+patch_size]
+            
+            if p_last.shape != (patch_size, patch_size):
                 continue
             
-            # Predição do modelo treinado
-            label_pred = model.predict([X[idx]])[0]
+            # Features futuras baseadas no último ano disponível
+            features_future = [
+                np.mean(p_last),
+                np.var(p_last),
+                np.mean(p_dem),
+                np.var(p_dem),
+                future_delta_years
+            ]
+            
+            label_pred = model.predict([features_future])[0]
             
             if label_pred == 1:
                 # Marcar crescimento com branco (255) no mapa visual
                 crescimento_mapa[i:i+patch_size, j:j+patch_size] = 255
             
-            idx += 1
+    # --- PÓS-PROCESSAMENTO PARA REMOVER O EFEITO BLOCKY ---
+    print("Aplicando suavização morfológica no mapa gerado...")
+    kernel = np.ones((5, 5), np.uint8)
+    # 1. Closing: junta blocos que estão muito próximos (preenche fendas)
+    crescimento_mapa = cv2.morphologyEx(crescimento_mapa, cv2.MORPH_CLOSE, kernel)
+    # 2. Gaussian Blur: desfoca as bordas quadradas duras dos blocos
+    mapa_blur = cv2.GaussianBlur(crescimento_mapa, (11, 11), 0)
+    # 3. Threshold: endurece novamente o desfoque, criando bordas arredondadas e orgânicas
+    _, crescimento_mapa_suave = cv2.threshold(mapa_blur, 127, 255, cv2.THRESH_BINARY)
 
-    # Salva o mapa de resultado como PNG
-    output_path = os.path.join(base_path, "mapa_crescimento_blumenau.png")
-    cv2.imwrite(output_path, crescimento_mapa)
+    output_dir = os.path.join(base_path, "generated images")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "mapa_previsao_futura_blumenau.png")
+    cv2.imwrite(output_path, crescimento_mapa_suave)
     print(f"Mapa visual salvo em: {output_path}")
     print("Processo concluído.")
 
