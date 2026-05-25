@@ -2,11 +2,14 @@ import cv2
 import numpy as np
 import os
 
-def preprocess_image(filepath, output_filename, threshold_value=None):
-    # Carregar imagem
-    img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
-    if img is None:
-        raise FileNotFoundError(f"Erro ao carregar a imagem: {filepath}")
+def preprocess_image(input_data, output_filename, threshold_value=None):
+    # Carregar imagem a partir do caminho (str) ou aceitar o array numpy diretamente
+    if isinstance(input_data, str):
+        img = cv2.imread(input_data, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise FileNotFoundError(f"Erro ao carregar a imagem: {input_data}")
+    else:
+        img = input_data.copy()
     
     # Substituir Not-A-Number (NaN) por 0
     img = np.nan_to_num(img, nan=0.0)
@@ -52,10 +55,30 @@ def main():
     print("Iniciando Módulo de Pré-processamento e Normalização...")
     
     for year in range(2015, 2026):
-        img_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", f"NTL_{year}", f"VIIRS_NTL_MedianaMensal_Blumenau_{year}_01_reprojetada.tif")
-        if os.path.exists(img_path):
-            print(f"\nProcessando Blumenau {year}...")
-            preprocess_image(img_path, f"blumenau_{year}.png", threshold_value=15)
+        images_of_year = []
+        
+        # Iterar por todos os meses (1 a 12)
+        for month in range(1, 13):
+            month_str = f"{month:02d}"
+            img_path = os.path.join(base_path, "data", "NTL_LITORAL_SC", "QGIS_LITORAL", "RASTER", "NTL_LITORAL", f"NTL_{year}", f"VIIRS_NTL_MedianaMensal_Blumenau_{year}_{month_str}_reprojetada.tif")
+            
+            if os.path.exists(img_path):
+                img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                if img is not None:
+                    images_of_year.append(img)
+
+        if images_of_year:
+            print(f"\nProcessando Blumenau {year} ({len(images_of_year)} meses encontrados)...")
+            
+            # Garante que tenham a mesma dimensão antes do empilhamento
+            min_h = min(im.shape[0] for im in images_of_year)
+            min_w = min(im.shape[1] for im in images_of_year)
+            images_cropped = [im[:min_h, :min_w] for im in images_of_year]
+            
+            # Calcula a mediana de todos os meses para cada pixel
+            median_img = np.median(np.stack(images_cropped, axis=0), axis=0)
+            
+            preprocess_image(median_img, f"blumenau_{year}.png", threshold_value=15)
 
 if __name__ == '__main__':
     main()
