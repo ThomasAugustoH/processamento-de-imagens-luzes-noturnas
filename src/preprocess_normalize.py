@@ -37,7 +37,7 @@ def preprocess_image(input_data, output_filename, threshold_value=None):
         
     # Salvar a imagem normalizada em cinza e a imagem binarizada PB
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(base_dir, "generated images")
+    output_dir = os.path.join(base_dir, "generated_images")
     os.makedirs(output_dir, exist_ok=True)
     
     norm_path = os.path.join(output_dir, f"normalizada_{output_filename}")

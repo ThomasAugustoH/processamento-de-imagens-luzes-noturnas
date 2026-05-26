@@ -245,7 +245,7 @@ def main():
     # 4. Threshold: endurece novamente o desfoque, criando bordas contínuas e orgânicas
     _, crescimento_mapa_suave = cv2.threshold(mapa_blur, 127, 255, cv2.THRESH_BINARY)
 
-    output_dir = os.path.join(base_path, "generated images")
+    output_dir = os.path.join(base_path, "generated_images")
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "mapa_previsao_futura_blumenau.png")
     cv2.imwrite(output_path, crescimento_mapa_suave)
