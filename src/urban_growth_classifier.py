@@ -87,11 +87,10 @@ def main():
         available_images[year] = available_images[year][:min_shape[0], :min_shape[1]]
     img_dem = img_dem[:min_shape[0], :min_shape[1]]
 
-    # Accumulate feature chunks as numpy arrays to avoid large Python lists
-    X_chunks_val = []
-    y_chunks_val = []
-    X_chunks_all = []
-    y_chunks_all = []
+    X_train_val = []
+    y_train_val = []
+    X_train_all = []
+    y_train_all = []
 
     ksize = 7  # Tamanho da janela local para extração de características (substitui blocos)
     step = 2   # Aumenta a densidade de amostras (4x mais dados) para o modelo aprender melhor as bordas
@@ -147,32 +146,17 @@ def main():
         
         delta_array = np.full_like(m1_sample, delta_years)
         
-        features_matrix = np.column_stack((m1_sample, v1_sample, macro_sample, local_macro_diff, md_sample, vd_sample, sd_sample, delta_array)).astype(np.float32)
-        labels_array = (df_sample > threshold).astype(np.uint8)
+        features_matrix = np.column_stack((m1_sample, v1_sample, macro_sample, local_macro_diff, md_sample, vd_sample, sd_sample, delta_array))
+        labels_array = (df_sample > threshold).astype(int)
 
         # Separa os dados de treinamento exclusivos para a etapa de validação (treinar até 2020)
         if y2 <= 2020:
-            X_chunks_val.append(features_matrix)
-            y_chunks_val.append(labels_array)
-
+            X_train_val.extend(features_matrix.tolist())
+            y_train_val.extend(labels_array.tolist())
+            
         # Acumula também para o modelo final que usa todos os dados
-        X_chunks_all.append(features_matrix)
-        y_chunks_all.append(labels_array)
-
-    # Concatena chunks em matrizes finais (mais eficiente que extend + tolist)
-    if X_chunks_val:
-        X_train_val = np.vstack(X_chunks_val)
-        y_train_val = np.concatenate(y_chunks_val)
-    else:
-        X_train_val = np.empty((0, 8), dtype=np.float32)
-        y_train_val = np.empty((0,), dtype=np.uint8)
-
-    if X_chunks_all:
-        X_train_all = np.vstack(X_chunks_all)
-        y_train_all = np.concatenate(y_chunks_all)
-    else:
-        X_train_all = np.empty((0, 8), dtype=np.float32)
-        y_train_all = np.empty((0,), dtype=np.uint8)
+        X_train_all.extend(features_matrix.tolist())
+        y_train_all.extend(labels_array.tolist())
 
     print(f"Total de amostras de treino extraídas (até 2020): {len(X_train_val)}")
     print(f"Total de amostras de treino extraídas (todos os anos): {len(X_train_all)}")
@@ -199,9 +183,9 @@ def main():
         y_true_val = (diff_val > threshold_val).astype(int).flatten()
         local_macro_diff_val = mean2020.flatten() - macro2020.flatten()
         X_val = np.column_stack((mean2020.flatten(), var2020.flatten(), macro2020.flatten(), local_macro_diff_val,
-                     mean_dem.flatten(), var_dem.flatten(), slope_blur.flatten(), 
-                     np.full_like(mean2020.flatten(), delta_val))).astype(np.float32)
-
+                                 mean_dem.flatten(), var_dem.flatten(), slope_blur.flatten(), 
+                                 np.full_like(mean2020.flatten(), delta_val)))
+        
         y_pred_val = model_val.predict(X_val)
         f1 = f1_score(y_true_val, y_pred_val, zero_division=0)
         iou = jaccard_score(y_true_val, y_pred_val)
@@ -240,7 +224,7 @@ def main():
     sd_flat = slope_blur.flatten()
     delta_future_array = np.full_like(m_last_flat, future_delta_years)
     
-    X_future = np.column_stack((m_last_flat, v_last_flat, macro_last_flat, local_macro_diff_last, md_flat, vd_flat, sd_flat, delta_future_array)).astype(np.float32)
+    X_future = np.column_stack((m_last_flat, v_last_flat, macro_last_flat, local_macro_diff_last, md_flat, vd_flat, sd_flat, delta_future_array))
     
     print("Realizando predições no mapa completo...")
     preds = model.predict(X_future)
