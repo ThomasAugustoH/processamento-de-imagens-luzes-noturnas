@@ -1,4 +1,5 @@
 .venv/
 .vscode/
 generated_images/
+resultados/
 __pycache__/
